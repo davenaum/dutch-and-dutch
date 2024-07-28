@@ -45,124 +45,92 @@ import websocket
 class DutchRoom :
     """Main class that represents a Room object in the D&D management App"""
 
-    # Talk to either speaker and find out who the master is. Not sure
-    # if this really matters, but we might as well, because the App
-    # does it. If an IP address is provided as the speaker name we will just
-    # assume that one is the master
-    def getmasterurl(self, rawip):
-        """Get the master speaker websocket URL"""
-        if rawip :
-            self.masterurl = 'ws://'+self.name+':8768'
-        else :
-            ws = websocket.WebSocket()
-            ws.connect('ws://'+self.name+':8768')
-            ws.send(
-                json.dumps(
-                    {"meta":{"id":"999912345678","method":"read","endpoint":\
-                             "master"},"data":{}}
-                )
-            )
-            response = ws.recv()
-            data = json.loads(response)
-            ws.close()
-            masterhost = data['data']['address']['hostname']
-            # Especially on Home Assistant, the mDNS resolution sometimes fails
-            # initially. So retry it a few times before giving up
-            tries = 5
-            for i in range(tries) :
-                try:
-                    masteraddr = socket.gethostbyname(masterhost)   # IPv4 address only
-                except:
-                    if i == (tries - 1) :
-                        print("gethostbyname ", masterhost," failed")
-                        raise 
-                    else:
-                        time.sleep(1)
-                        continue
-                    break
-            masterport = str(data['data']['address']['port_ascend'])
-            self.masterurl = "ws://" + masteraddr + ":" + masterport
-            print ("Master speaker IP: ", masteraddr)
-
     # Find out a room ID from the master speaker, by asking for a list
     # of targets. Even though the query specifies "room", it seems to
     # get speakers as well.
-    def getroomid(self):
-        """Get the Room ID from the master speaker"""
+    def getRoomId(self):
+        cmd = {}
+        cmd['meta'] = {}
+        cmd['meta']['id'] = '999912345678'
+        cmd['meta']['method'] = 'read'
+        cmd['meta']['endpoint'] = 'targets'
+        cmd['meta']['targetType'] = 'room'
+        cmd['meta']['target'] = '*'
+        cmd['data'] = {}
+
         self.ws = websocket.WebSocket()
         self.ws.connect(self.masterurl)
-        self.ws.send(
-            json.dumps(
-                {"meta":{"id":"999912345678","method":"read","endpoint":\
-                         "targets","targetType":"room","target":"*"},"data":{}}
-            )
-        )
+        self.ws.send( json.dumps(cmd) )
         response = self.ws.recv()
         data = json.loads(response)
+
         # we expect an array of responses, one of which is a room, the
         # other two are the speakers. The room has always been the
         # first one in dumped traffic, but don't assume this.
         respcnt = (len(data['data']))
-        self.roomtarget = ""
+        self.roomtarget = ''
         for i in range(respcnt):
-            if data['data'][i]['targetType'] == "room" :   # found a room, so copy its ID
+            if data['data'][i]['targetType'] == 'room' :   # found a room, so copy its ID
                 self.roomtarget = data['data'][i]['target']
-        # leave the websocket open for the next call.
 
-    def getcommand(self, endpointval, datakey, dataval):
+
+    def getCommand(self, endpointVal, dataKey, dataVal):
         jsoncommand = {}
-
-        meta = {}
-        meta['id'] = '999912345678'
-        meta['method'] = 'update'
-        meta['endpoint'] = endpointval
-        meta['targetType'] = 'room'
-        meta['target'] = self.roomtarget
-        jsoncommand['meta'] = meta
-
-        data = {}
-        data[datakey] = dataval
-        jsoncommand['data'] = data
-
+        jsoncommand['meta'] = {}
+        jsoncommand['meta']['id'] = '999912345678'
+        jsoncommand['meta']['method'] = 'update'
+        jsoncommand['meta']['endpoint'] = endpointVal
+        jsoncommand['meta']['targetType'] = 'room'
+        jsoncommand['meta']['target'] = self.roomtarget
+        jsoncommand['data'] = {}
+        jsoncommand['data'][dataKey] = dataVal
         return json.dumps(jsoncommand)
 
-    def dosleep(self):
-        self.ws.send( self.getcommand( 'sleep', 'enable', True ) )
+
+    def doSleep(self):
+        self.ws.send( self.getCommand( 'sleep', 'enable', True ) )
         self.ws.recv()
 
-    def dowake(self):
-        self.ws.send( self.getcommand( 'sleep', 'enable', False ) )
+
+    def doWake(self):
+        self.ws.send( self.getCommand( 'sleep', 'enable', False ) )
         self.ws.recv()
 
-    def setinput(self, inputMode):
+
+    def setInput(self, inputMode):
         # Reset volume to play it safe
-        self.setvolume(-30.0)
-        self.ws.send( self.getcommand('inputMode', 'inputMode', inputMode) )
+        self.setVolume(-30.0)
+        self.ws.send( self.getCommand('inputMode', 'inputMode', inputMode) )
         self.ws.recv()
 
-    def setvolume(self, gain):
-        self.ws.send( self.getcommand('gain2', 'gain', gain) )
+
+    def setVolume(self, gain):
+        self.ws.send( self.getCommand('gain2', 'gain', gain) )
         self.ws.recv()
 
-    def dodump(self):
-        # get the "network" data which seems to include almost all parameters and settings
-        self.ws.send(
-            json.dumps(
-                {"meta":{"id":"999912345678","method":"read","endpoint":\
-                         "network","targetType":"room","target":"*"},"data":{}}
-            )
-        )
+
+    def doDump(self):
+        cmd = {}
+        cmd['meta'] = {}
+        cmd['meta']['id'] = '999912345678'
+        cmd['meta']['method'] = 'read'
+        cmd['meta']['endpoint'] = 'network'
+        cmd['meta']['targetType'] = 'room'
+        cmd['meta']['target'] = '*'
+        cmd['data'] = {}
+
+        self.ws.send( json.dumps(cmd) )
         response = self.ws.recv()
         self.dump = json.loads(response)
         print(json.dumps(self.dump, indent=2))
 
 
-    def __init__(self,name, rawip):
-        self.name = name
+    def __init__(self, ipAddress):
+        self.masterurl = 'ws://' + ipAddress + ':8768'
 
         # Get the Room ID we want to talk to.
-        self.getmasterurl(rawip)
-        self.getroomid()
+        self.getRoomId()
+
 
     def __del__(self):
         self.ws.close()
@@ -171,32 +139,29 @@ class DutchRoom :
 def main():
     valid_args = ['wake', 'sleep', 'dump', 'inputAes', 'inputRoon', 'inputSpotify']
 
+    # check for valid IP address
+    ipRegex = re.compile('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
+
     args = sys.argv[1:]
-    if (len(args) < 2) or (args[1] not in valid_args):
-        print ("Usage:", sys.argv[0], "name", valid_args)
+    if (len(args) < 2) or not re.match(ipRegex, args[0]) or (args[1] not in valid_args):
+        print ('Usage:', sys.argv[0], '<ip_address>', valid_args)
         return 1
 
-    # check for first argument being an IP address, if so we assume it's the master
-    pat = re.compile ("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
-    rawip = bool(re.match(pat, args[0]))
+    room = DutchRoom(args[0])
 
-    room = DutchRoom(args[0], rawip)
-
-    command = args[1]
-
-    match command:
+    match args[1]:
         case 'dump':
-            room.dodump()
+            room.doDump()
         case 'wake':
-            room.dowake()
+            room.doWake()
         case 'sleep':
-            room.dosleep()
+            room.doSleep()
         case 'inputAes':
-            room.setinput('aes')
+            room.setInput('aes')
         case 'inputRoon':
-            room.setinput('Roon Ready')
+            room.setInput('Roon Ready')
         case 'inputSpotify':
-            room.setinput('Spotify Connect')
+            room.setInput('Spotify Connect')
 
     return 0
 

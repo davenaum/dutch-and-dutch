@@ -35,11 +35,9 @@
 #
 #
 
-import time
 import json
 import re
 import sys
-import socket
 import websocket
 
 class DutchRoom :

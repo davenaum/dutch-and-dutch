@@ -108,6 +108,9 @@ class DutchRoom :
 
 
     def setInput(self, inputMode):
+        # Wake if sleeping
+        self.doWake()
+
         # Reset volume to play it safe
         self.setVolume(-30.0)
         self.ws.send( self.getCommand('inputMode', {'inputMode': inputMode} ) )

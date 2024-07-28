@@ -85,6 +85,38 @@ class DutchRoom :
         return json.dumps(jsoncommand)
 
 
+    def getCommandDict(self, endpointVal, dataDict):
+        jsoncommand = {}
+        jsoncommand['meta'] = {}
+        jsoncommand['meta']['id'] = '999912345678'
+        jsoncommand['meta']['method'] = 'update'
+        jsoncommand['meta']['endpoint'] = endpointVal
+        jsoncommand['meta']['targetType'] = 'room'
+        jsoncommand['meta']['target'] = self.roomtarget
+        jsoncommand['data'] = dataDict
+        return json.dumps(jsoncommand)
+
+
+    def doPlay(self):
+        self.ws.send( self.getCommandDict( 'streaming-api', {'method': 'Play', 'arguments': []} ) )
+        self.ws.recv()
+
+
+    def doPause(self):
+        self.ws.send( self.getCommandDict( 'streaming-api', {'method': 'Pause', 'arguments': []} ) )
+        self.ws.recv()
+
+
+    def doNext(self):
+        self.ws.send( self.getCommandDict( 'streaming-api', {'method': 'Next', 'arguments': []} ) )
+        self.ws.recv()
+
+
+    def doPrevious(self):
+        self.ws.send( self.getCommandDict( 'streaming-api', {'method': 'Previous', 'arguments': []} ) )
+        self.ws.recv()
+
+
     def doSleep(self):
         self.ws.send( self.getCommand( 'sleep', 'enable', True ) )
         self.ws.recv()
@@ -135,7 +167,7 @@ class DutchRoom :
 
 
 def main():
-    valid_args = ['wake', 'sleep', 'dump', 'inputAes', 'inputRoon', 'inputSpotify']
+    valid_args = ['wake', 'sleep', 'dump', 'inputAes', 'inputRoon', 'inputSpotify', 'play', 'pause', 'next', 'previous']
 
     # check for valid IP address
     ipRegex = re.compile('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
@@ -154,6 +186,14 @@ def main():
             room.doWake()
         case 'sleep':
             room.doSleep()
+        case 'play':
+            room.doPlay()
+        case 'pause':
+            room.doPause()
+        case 'next':
+            room.doNext()
+        case 'previous':
+            room.doPrevious()
         case 'inputAes':
             room.setInput('aes')
         case 'inputRoon':

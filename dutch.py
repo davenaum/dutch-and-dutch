@@ -72,27 +72,20 @@ class DutchRoom :
                 self.roomtarget = data['data'][i]['target']
 
 
-    def getCommand(self, endpointVal, dataKey, dataVal):
+    def getCommand(self, endpointVal, dataKey, dataVal, methodVal = 'update', targetVal = None):
+        return self.getCommandDict( endpointVal, {dataKey: dataVal} )
+
+
+    def getCommandDict(self, endpointVal, dataDict, methodVal = 'update', targetVal = None):
+        if targetVal is None:
+            targetVal = self.roomtarget
         jsoncommand = {}
         jsoncommand['meta'] = {}
         jsoncommand['meta']['id'] = '999912345678'
-        jsoncommand['meta']['method'] = 'update'
+        jsoncommand['meta']['method'] = methodVal
         jsoncommand['meta']['endpoint'] = endpointVal
         jsoncommand['meta']['targetType'] = 'room'
-        jsoncommand['meta']['target'] = self.roomtarget
-        jsoncommand['data'] = {}
-        jsoncommand['data'][dataKey] = dataVal
-        return json.dumps(jsoncommand)
-
-
-    def getCommandDict(self, endpointVal, dataDict):
-        jsoncommand = {}
-        jsoncommand['meta'] = {}
-        jsoncommand['meta']['id'] = '999912345678'
-        jsoncommand['meta']['method'] = 'update'
-        jsoncommand['meta']['endpoint'] = endpointVal
-        jsoncommand['meta']['targetType'] = 'room'
-        jsoncommand['meta']['target'] = self.roomtarget
+        jsoncommand['meta']['target'] = targetVal
         jsoncommand['data'] = dataDict
         return json.dumps(jsoncommand)
 

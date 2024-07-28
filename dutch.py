@@ -107,6 +107,44 @@ class DutchRoom :
         for i in range(respcnt):
             if data['data'][i]['targetType'] == "room" :   # found a room, so copy its ID
                 self.roomtarget = data['data'][i]['target']
+        # leave the websocket open for the next call.
+
+    def getcommand(self, endpointval, datakey, dataval):
+        jsoncommand = {}
+
+        meta = {}
+        meta['id'] = '999912345678'
+        meta['method'] = 'update'
+        meta['endpoint'] = endpointval
+        meta['targetType'] = 'room'
+        meta['target'] = self.roomtarget
+        jsoncommand['meta'] = meta
+
+        data = {}
+        data[datakey] = dataval
+        jsoncommand['data'] = data
+
+        return json.dumps(jsoncommand)
+
+    def dosleep(self):
+        self.ws.send( self.getcommand( 'sleep', 'enable', True ) )
+        self.ws.recv()
+
+    def dowake(self):
+        self.ws.send( self.getcommand( 'sleep', 'enable', False ) )
+        self.ws.recv()
+
+    def setinput(self, inputMode):
+        # Reset volume to play it safe
+        self.setvolume(-30.0)
+        self.ws.send( self.getcommand('inputMode', 'inputMode', inputMode) )
+        self.ws.recv()
+
+    def setvolume(self, gain):
+        self.ws.send( self.getcommand('gain2', 'gain', gain) )
+        self.ws.recv()
+
+    def dodump(self):
         # get the "network" data which seems to include almost all parameters and settings
         self.ws.send(
             json.dumps(
@@ -116,48 +154,26 @@ class DutchRoom :
         )
         response = self.ws.recv()
         self.dump = json.loads(response)
-        # leave the websocket open for the next call.
-
-    # Actually send the sleep or wake command.
-    def dosleep(self, sleepmode):
-        """Put speakers to sleep or wake them up"""
-        if sleepmode == "sleep" :
-            command = '{"meta":{"id":"999912345678","method":"update","endpoint":"sleep",\
-            "targetType":"room","target":"' + self.roomtarget + '"},"data":{"enable":true}}'
-        elif sleepmode == "wake" :
-            command = '{"meta":{"id":"999912345678","method":"update","endpoint":"sleep",\
-            "targetType":"room","target":"' + self.roomtarget + '"},"data":{"enable":false}}'
-        self.ws.send(
-            command
-        )
-        self.ws.recv()
-        self.ws.close()
-
-    # Dump data
-    def dodump(self):
-        """Dump data from speakers"""
         print(json.dumps(self.dump, indent=2))
-        self.ws.close()
 
 
-    #
-    # Class init. Get the Room ID we want to talk to.
-    #
     def __init__(self,name, rawip):
-        """Init"""
         self.name = name
+
+        # Get the Room ID we want to talk to.
         self.getmasterurl(rawip)
         self.getroomid()
 
+    def __del__(self):
+        self.ws.close()
 
-#
-# a command line argument of "sleep" will put the speakers into standby, "wake" will wake them up.
-#
+
 def main():
-    """Main function if used standalone"""
+    valid_args = ['wake', 'sleep', 'dump', 'inputAes', 'inputRoon', 'inputSpotify']
+
     args = sys.argv[1:]
-    if (len(args) < 2) or (args[1] != "wake" and args[1] != "sleep" and args[1] != "dump")  :
-        print ("Usage: " + sys.argv[0] + " name wake|sleep|dump")
+    if (len(args) < 2) or (args[1] not in valid_args):
+        print ("Usage:", sys.argv[0], "name", valid_args)
         return 1
 
     # check for first argument being an IP address, if so we assume it's the master
@@ -166,10 +182,22 @@ def main():
 
     room = DutchRoom(args[0], rawip)
 
-    if args[1] == "dump" :
-        room.dodump()
-    else :
-        room.dosleep(args[1])
+    command = args[1]
+
+    match command:
+        case 'dump':
+            room.dodump()
+        case 'wake':
+            room.dowake()
+        case 'sleep':
+            room.dosleep()
+        case 'inputAes':
+            room.setinput('aes')
+        case 'inputRoon':
+            room.setinput('Roon Ready')
+        case 'inputSpotify':
+            room.setinput('Spotify Connect')
+
     return 0
 
 if __name__ == '__main__':

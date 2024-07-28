@@ -47,18 +47,9 @@ class DutchRoom :
     # of targets. Even though the query specifies "room", it seems to
     # get speakers as well.
     def getRoomId(self):
-        cmd = {}
-        cmd['meta'] = {}
-        cmd['meta']['id'] = '999912345678'
-        cmd['meta']['method'] = 'read'
-        cmd['meta']['endpoint'] = 'targets'
-        cmd['meta']['targetType'] = 'room'
-        cmd['meta']['target'] = '*'
-        cmd['data'] = {}
-
         self.ws = websocket.WebSocket()
         self.ws.connect(self.masterurl)
-        self.ws.send( json.dumps(cmd) )
+        self.ws.send( self.getCommand('targets', {}, methodVal = 'read', targetVal = '*') )
         response = self.ws.recv()
         data = json.loads(response)
 
@@ -72,11 +63,7 @@ class DutchRoom :
                 self.roomtarget = data['data'][i]['target']
 
 
-    def getCommand(self, endpointVal, dataKey, dataVal, methodVal = 'update', targetVal = None):
-        return self.getCommandDict( endpointVal, {dataKey: dataVal} )
-
-
-    def getCommandDict(self, endpointVal, dataDict, methodVal = 'update', targetVal = None):
+    def getCommand(self, endpointVal, dataDict, methodVal = 'update', targetVal = None):
         if targetVal is None:
             targetVal = self.roomtarget
         jsoncommand = {}
@@ -91,58 +78,49 @@ class DutchRoom :
 
 
     def doPlay(self):
-        self.ws.send( self.getCommandDict( 'streaming-api', {'method': 'Play', 'arguments': []} ) )
+        self.ws.send( self.getCommand( 'streaming-api', {'method': 'Play', 'arguments': []} ) )
         self.ws.recv()
 
 
     def doPause(self):
-        self.ws.send( self.getCommandDict( 'streaming-api', {'method': 'Pause', 'arguments': []} ) )
+        self.ws.send( self.getCommand( 'streaming-api', {'method': 'Pause', 'arguments': []} ) )
         self.ws.recv()
 
 
     def doNext(self):
-        self.ws.send( self.getCommandDict( 'streaming-api', {'method': 'Next', 'arguments': []} ) )
+        self.ws.send( self.getCommand( 'streaming-api', {'method': 'Next', 'arguments': []} ) )
         self.ws.recv()
 
 
     def doPrevious(self):
-        self.ws.send( self.getCommandDict( 'streaming-api', {'method': 'Previous', 'arguments': []} ) )
+        self.ws.send( self.getCommand( 'streaming-api', {'method': 'Previous', 'arguments': []} ) )
         self.ws.recv()
 
 
     def doSleep(self):
-        self.ws.send( self.getCommand( 'sleep', 'enable', True ) )
+        self.ws.send( self.getCommand( 'sleep', {'enable': True} ) )
         self.ws.recv()
 
 
     def doWake(self):
-        self.ws.send( self.getCommand( 'sleep', 'enable', False ) )
+        self.ws.send( self.getCommand( 'sleep', {'enable': False} ) )
         self.ws.recv()
 
 
     def setInput(self, inputMode):
         # Reset volume to play it safe
         self.setVolume(-30.0)
-        self.ws.send( self.getCommand('inputMode', 'inputMode', inputMode) )
+        self.ws.send( self.getCommand('inputMode', {'inputMode': inputMode} ) )
         self.ws.recv()
 
 
     def setVolume(self, gain):
-        self.ws.send( self.getCommand('gain2', 'gain', gain) )
+        self.ws.send( self.getCommand('gain2', {'gain': gain} ) )
         self.ws.recv()
 
 
     def doDump(self):
-        cmd = {}
-        cmd['meta'] = {}
-        cmd['meta']['id'] = '999912345678'
-        cmd['meta']['method'] = 'read'
-        cmd['meta']['endpoint'] = 'network'
-        cmd['meta']['targetType'] = 'room'
-        cmd['meta']['target'] = '*'
-        cmd['data'] = {}
-
-        self.ws.send( json.dumps(cmd) )
+        self.ws.send( self.getCommand('network', {}, methodVal = 'read', targetVal = '*') )
         response = self.ws.recv()
         self.dump = json.loads(response)
         print(json.dumps(self.dump, indent=2))

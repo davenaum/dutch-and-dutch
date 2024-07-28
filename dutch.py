@@ -129,6 +129,20 @@ class DutchRoom :
         print(json.dumps(self.dump, indent=2))
 
 
+    def doToggle(self):
+        # Dump room state to see if currently playing
+        self.ws.send( self.getCommand('network', {}, methodVal = 'read', targetVal = '*') )
+        response = self.ws.recv()
+        self.dump = json.loads(response)
+        isPlaying = self.dump['data']['state'][self.roomtarget]['data']['streamingInfo']['is_playing']
+
+        # Toggle based on play state
+        if isPlaying:
+            self.doPause()
+        else:
+            self.doPlay()
+
+
     def __init__(self, ipAddress):
         self.masterurl = 'ws://' + ipAddress + ':8768'
 
@@ -141,7 +155,7 @@ class DutchRoom :
 
 
 def main():
-    valid_args = ['wake', 'sleep', 'dump', 'inputAes', 'inputRoon', 'inputSpotify', 'play', 'pause', 'next', 'previous']
+    valid_args = ['wake', 'sleep', 'dump', 'inputAes', 'inputRoon', 'inputSpotify', 'play', 'pause', 'next', 'previous', 'toggleplay']
 
     # check for valid IP address
     ipRegex = re.compile('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
@@ -164,6 +178,8 @@ def main():
             room.doPlay()
         case 'pause':
             room.doPause()
+        case 'toggleplay':
+            room.doToggle()
         case 'next':
             room.doNext()
         case 'previous':

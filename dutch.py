@@ -122,6 +122,17 @@ class DutchRoom :
         self.ws.recv()
 
 
+    def doPreset(self, presetId):
+        print(self.getCommand('preset2', {'presetID': presetId}, methodVal = 'select' ) )
+        self.ws.send( self.getCommand('preset2', {'presetID': presetId}, methodVal = 'select' ) )
+        self.ws.recv()
+
+
+    def doBacch(self, onOff):
+        self.ws.send( self.getCommand('bacch-enabled', {'enable': onOff} ) )
+        self.ws.recv()
+
+
     def doDump(self):
         self.ws.send( self.getCommand('network', {}, methodVal = 'read', targetVal = '*') )
         response = self.ws.recv()
@@ -129,7 +140,7 @@ class DutchRoom :
         print(json.dumps(self.dump, indent=2))
 
 
-    def doToggle(self):
+    def doTogglePlay(self):
         # Dump room state to see if currently playing
         self.ws.send( self.getCommand('network', {}, methodVal = 'read', targetVal = '*') )
         response = self.ws.recv()
@@ -155,7 +166,7 @@ class DutchRoom :
 
 
 def main():
-    valid_args = ['wake', 'sleep', 'dump', 'inputAes', 'inputRoon', 'inputSpotify', 'play', 'pause', 'next', 'previous', 'toggleplay']
+    valid_args = ['wake', 'sleep', 'dump', 'inputAes', 'inputRoon', 'inputSpotify', 'play', 'pause', 'next', 'previous', 'toggleplay', 'presetHarman', 'presetBass', 'presetLoud1', 'presetLoud3', 'bacchOn', 'bacchOff']
 
     # check for valid IP address
     ipRegex = re.compile('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
@@ -179,7 +190,7 @@ def main():
         case 'pause':
             room.doPause()
         case 'toggleplay':
-            room.doToggle()
+            room.doTogglePlay()
         case 'next':
             room.doNext()
         case 'previous':
@@ -190,6 +201,18 @@ def main():
             room.setInput('Roon Ready')
         case 'inputSpotify':
             room.setInput('Spotify Connect')
+        case 'presetHarman':
+            room.doPreset('2d0f652b-4631-4f11-8205-85a9b223a8a9')
+        case 'presetBass':
+            room.doPreset('3ae3dd8f-a37c-44c0-8a5f-b84128b174af')
+        case 'presetLoud1':
+            room.doPreset('f88c9fd8-42c1-4411-8371-11daa293504f')
+        case 'presetLoud3':
+            room.doPreset('1212251f-fbe7-49e8-94e5-f21271a10dd9')
+        case 'bacchOn':
+            room.doBacch(True)
+        case 'bacchOff':
+            room.doBacch(False)
 
     return 0
 

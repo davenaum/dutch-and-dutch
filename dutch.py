@@ -113,7 +113,7 @@ class DutchRoom :
 
         # Reset volume to play it safe
         self.setVolume(-30.0)
-        self.ws.send( self.getCommand('inputMode', {'inputMode': inputMode} ) )
+        self.ws.send( self.getCommand('selectedInput', {'input': inputMode} ) )
         self.ws.recv()
 
 
@@ -196,7 +196,7 @@ def main():
         case 'previous':
             room.doPrevious()
         case 'inputAes':
-            room.setInput('aes')
+            room.setInput('XLR')
         case 'inputRoon':
             room.setInput('Roon Ready')
         case 'inputSpotify':
